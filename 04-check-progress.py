@@ -48,7 +48,7 @@ def setup_database():
 ########################################
 
 
-def count_unsearched_points():
+def count_unsearched_coords():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.execute("SELECT COUNT(*) FROM sample_coords WHERE searched = 0")
     res = cursor.fetchone()
@@ -56,7 +56,7 @@ def count_unsearched_points():
     return res[0]
 
 
-def count_total_points():
+def count_total_coords():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.execute("SELECT COUNT(*) FROM sample_coords")
     res = cursor.fetchone()
@@ -85,24 +85,24 @@ def count_panoramas_with_date_and_copyright():
 if __name__ == "__main__":
     setup_database()
 
-    unsearched_points = count_unsearched_points()
-    total_points = count_total_points()
-    searched_points = total_points - unsearched_points
-    point_search_progress = searched_points / total_points
+    unsearched_coords = count_unsearched_coords()
+    total_coords = count_total_coords()
+    searched_coords = total_coords - unsearched_coords
+    coord_search_progress = searched_coords / total_coords
 
     total_panoramas = count_total_panoramas()
     panoramas_with_date_and_copyright = count_panoramas_with_date_and_copyright()
     panoramas_metadata_progress = panoramas_with_date_and_copyright / total_panoramas
 
-    panorama_points_ratio = total_panoramas / searched_points
+    panorama_coords_ratio = total_panoramas / searched_coords
     print("Current Time: ", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-    print("\n[Point Search Progress]")
-    print(f"Progress: {point_search_progress*100:.2f}%")
-    print(f"Searched Points: {searched_points:,}/{total_points:,}")
+    print("\n[Coord Search Progress]")
+    print(f"Progress: {coord_search_progress*100:.2f}%")
+    print(f"Searched Coords: {searched_coords:,}/{total_coords:,}")
 
     print("\n[Found Panoramas]")
     print(f"Total Panoramas: {total_panoramas:,}")
-    print(f"Panorama to Point Ratio: {panorama_points_ratio:.2f} pano/pt")
+    print(f"Panorama to Coord Ratio: {panorama_coords_ratio:.2f} pano/coord")
 
     print("\n[Panorama Metadata Progress]")
     print(f"Progress: {panoramas_metadata_progress*100:.2f}%")
@@ -111,4 +111,4 @@ if __name__ == "__main__":
     )
 
     print("\n[Expected Total Panoramas]")
-    print(f"Expected Total Panoramas: {total_points * panorama_points_ratio:,.0f}")
+    print(f"Expected Total Panoramas: {total_coords * panorama_coords_ratio:,.0f}")

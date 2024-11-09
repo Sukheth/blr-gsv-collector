@@ -9,7 +9,7 @@ DB_PATH = "gsv.db"
 SEARCH_BATCH_SIZE = 100000
 
 # if you are skeptical about the API results affected by the network, you can set this to False
-# and the points that have no panorama found will not be marked as searched, and will be searched again in the future
+# and the coords that have no panorama found will not be marked as searched, and will be searched again in the future
 COUNT_NONE_FOUND_AS_SEARCHED = True
 
 
@@ -48,13 +48,13 @@ def setup_database():
 
 
 ########################################
-# MARK: Get unsearched points
+# MARK: Get unsearched coords
 ########################################
 
 
-def get_unsearched_points(batch_size: int) -> dict[int, tuple[float, float]]:
+def get_unsearched_coords(batch_size: int) -> dict[int, tuple[float, float]]:
     conn = sqlite3.connect(DB_PATH)
-    points: dict[int, tuple[float, float]] = {}
+    coords: dict[int, tuple[float, float]] = {}
 
     cursor = conn.execute(
         "SELECT id, lat, lon, label, searched FROM sample_coords WHERE searched = 0 ORDER BY RANDOM() LIMIT ?",
@@ -63,16 +63,16 @@ def get_unsearched_points(batch_size: int) -> dict[int, tuple[float, float]]:
 
     rows = cursor.fetchall()
 
-    print(f"Found {len(rows)} unsearched points")
+    print(f"Found {len(rows)} unsearched coords")
 
     for row in rows:
         print(row)
         (id, lat, lon, label, searched) = row
-        points[id] = (lat, lon)
+        coords[id] = (lat, lon)
 
     conn.close()
 
-    return points
+    return coords
 
 
 ########################################
@@ -80,18 +80,18 @@ def get_unsearched_points(batch_size: int) -> dict[int, tuple[float, float]]:
 ########################################
 
 
-def search_and_insert(point_id, lat, lon):
+def search_and_insert(coord_id, lat, lon):
 
-    print(f"Searching for point {point_id} with lat {lat:.2f} and lon {lon:.2f}")
+    print(f"Searching for coords {coord_id} with lat {lat:.2f} and lon {lon:.2f}")
     panorama_results = streetview.search_panoramas(lat, lon)
 
     if panorama_results is None:
-        print(f"No panorama found for point {point_id}")
+        print(f"No panorama found for coord {coord_id}")
         if not COUNT_NONE_FOUND_AS_SEARCHED:
             return
 
     if len(panorama_results) == 0:
-        print(f"No panorama found for point {point_id}")
+        print(f"No panorama found for coord {coord_id}")
         if not COUNT_NONE_FOUND_AS_SEARCHED:
             return
 
@@ -112,37 +112,37 @@ def search_and_insert(point_id, lat, lon):
                 result.roll,
             ],
         )
-    cursor.execute("UPDATE sample_coords SET searched = 1 WHERE id = ?", [point_id])
+    cursor.execute("UPDATE sample_coords SET searched = 1 WHERE id = ?", [coord_id])
     conn.commit()
     conn.close()
 
-    print(f"Found {len(panorama_results)} panoramas for point {point_id}")
+    print(f"Found {len(panorama_results)} panoramas for coord {coord_id}")
 
 
 def run_batch_in_parallel():
-    points = get_unsearched_points(SEARCH_BATCH_SIZE)
+    coords = get_unsearched_coords(SEARCH_BATCH_SIZE)
 
-    if len(points) == 0:
-        print("No unsearched points found, exiting")
+    if len(coords) == 0:
+        print("No unsearched coords found, exiting")
         exit(0)
 
-    point_count = len(points)
+    coords_count = len(coords)
 
     progress = 0
     begin_time = time.time()
     last_progress_time = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=72) as executor:
         futures = {
-            executor.submit(search_and_insert, point_id, lat, lon): point_id
-            for point_id, (lat, lon) in points.items()
+            executor.submit(search_and_insert, coord_id, lat, lon): coord_id
+            for coord_id, (lat, lon) in coords.items()
         }
 
         for future in concurrent.futures.as_completed(futures):
-            point_id = futures[future]
+            coord_id = futures[future]
             try:
                 future.result()
             except Exception as e:
-                print(f"Error searching for point {point_id}")
+                print(f"Error searching for coord {coord_id}")
                 print(e)
             progress += 1
             last_duration = time.time() - last_progress_time
@@ -152,9 +152,9 @@ def run_batch_in_parallel():
             total_speed = progress / total_duration
             # clear the console
             os.system("cls" if os.name == "nt" else "clear")
-            print("Search Coord Progress: %d/%d" % (progress, point_count))
-            print("Last Speed: %f points/sec" % last_speed)
-            print("Total Speed: %f points/sec" % total_speed)
+            print("Search Coord Progress: %d/%d" % (progress, coords_count))
+            print("Last Speed: %f coords/sec" % last_speed)
+            print("Total Speed: %f coords/sec" % total_speed)
 
 
 if __name__ == "__main__":
