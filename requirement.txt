@@ -1,0 +1,3 @@
+geopandas
+streetview
+python-dotenv
