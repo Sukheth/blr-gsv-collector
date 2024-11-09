@@ -1,6 +1,6 @@
 # NYC Street View Data Collector
 
-A Python-based tool for collecting and analyzing Google Street View panorama data across New York City boroughs.
+A Python-based tool for collecting and analyzing Google Street View panorama data across New York City boroughs. You can modify the script to collect data from other areas.
 
 ## Overview
 
@@ -18,6 +18,12 @@ This project samples coordinates throughout NYC boroughs and collects associated
 
 - Python 3.x
 - Google Maps API key
+
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Data Storage
 
