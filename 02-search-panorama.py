@@ -8,7 +8,9 @@ DB_PATH = "gsv.db"
 
 SEARCH_BATCH_SIZE = 100000
 
-COUNT_NONE_FOUND_AS_SEARCHED = False
+# if you are skeptical about the API results affected by the network, you can set this to False
+# and the points that have no panorama found will not be marked as searched, and will be searched again in the future
+COUNT_NONE_FOUND_AS_SEARCHED = True
 
 
 ########################################
