@@ -19,6 +19,12 @@ This project samples coordinates throughout NYC boroughs and collects associated
 - Python 3.x
 - Google Maps API key
 
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Data Storage
 
 All data is stored in a local SQLite database named `gsv.db`. This database is created automatically when running the scripts and maintains the state throughout the entire scraping process. The database persists between runs, allowing for interrupted scraping jobs to be resumed.
