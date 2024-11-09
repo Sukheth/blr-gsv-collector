@@ -1,6 +1,6 @@
 # NYC Street View Data Collector
 
-A Python-based tool for collecting and analyzing Google Street View panorama data across New York City boroughs.
+A Python-based tool for collecting and analyzing Google Street View panorama data across New York City boroughs. You can modify the script to collect data from other areas.
 
 ## Overview
 
