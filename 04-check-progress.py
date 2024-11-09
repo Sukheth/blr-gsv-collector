@@ -95,17 +95,20 @@ if __name__ == "__main__":
     panoramas_metadata_progress = panoramas_with_date_and_copyright / total_panoramas
 
     panorama_points_ratio = total_panoramas / searched_points
+    print("Current Time: ", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    print("\n[Point Search Progress]")
+    print(f"Progress: {point_search_progress*100:.2f}%")
+    print(f"Searched Points: {searched_points:,}/{total_points:,}")
 
+    print("\n[Found Panoramas]")
+    print(f"Total Panoramas: {total_panoramas:,}")
+    print(f"Panorama to Point Ratio: {panorama_points_ratio:.2f} pano/pt")
+
+    print("\n[Panorama Metadata Progress]")
+    print(f"Progress: {panoramas_metadata_progress*100:.2f}%")
     print(
-        f"Point Search Progress: {point_search_progress*100:.2f}% \t {searched_points}/{total_points}"
+        f"Panoramas with Metadata: {panoramas_with_date_and_copyright:,}/{total_panoramas:,}"
     )
 
-    print(
-        f"Found {total_panoramas} panoramas ({panorama_points_ratio:.4f} pano per point)"
-    )
-
-    print(
-        f"Panorama Metadata Progress: {panoramas_metadata_progress*100:.2f}% \t {panoramas_with_date_and_copyright}/{total_panoramas}"
-    )
-
-    print(f"Expected {total_points * panorama_points_ratio:.1f} panoramas")
+    print("\n[Expected Total Panoramas]")
+    print(f"Expected Total Panoramas: {total_points * panorama_points_ratio:,.0f}")
