@@ -6,8 +6,8 @@ import os
 import time
 import sqlite3
 
-
-SAMPLE_INTERVAL_METER = 5  # 5 meters
+# 20 meters, this doesnt need to be too dense, because the Google Street View API will return the nearest panorama within 50 meters
+SAMPLE_INTERVAL_METER = 20
 # 1 degree is approximately 111000 meters
 SAMPLE_INTERVAL_DEGREE = SAMPLE_INTERVAL_METER / 111000
 
