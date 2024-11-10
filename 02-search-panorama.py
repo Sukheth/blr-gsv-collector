@@ -12,6 +12,8 @@ SEARCH_BATCH_SIZE = 100000
 # and the coords that have no panorama found will not be marked as searched, and will be searched again in the future
 COUNT_NONE_FOUND_AS_SEARCHED = True
 
+WORKERS = 72
+
 
 ########################################
 # MARK: Database setup
@@ -85,13 +87,13 @@ def search_and_insert(coord_id, lat, lon):
     print(f"Searching for coords {coord_id} with lat {lat:.2f} and lon {lon:.2f}")
     panorama_results = streetview.search_panoramas(lat, lon)
 
-    if panorama_results is None:
-        print(f"No panorama found for coord {coord_id}")
-        if not COUNT_NONE_FOUND_AS_SEARCHED:
-            return
+    # if result is not a list or is an empty list
+    if not isinstance(panorama_results, list):
+        print(f"Error searching for point {coord_id}, ({lat}, {lon})")
+        return
 
     if len(panorama_results) == 0:
-        print(f"No panorama found for coord {coord_id}")
+        print(f"No panorama found for point {coord_id}, ({lat}, {lon})")
         if not COUNT_NONE_FOUND_AS_SEARCHED:
             return
 
@@ -131,7 +133,7 @@ def run_batch_in_parallel():
     progress = 0
     begin_time = time.time()
     last_progress_time = time.time()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=72) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
         futures = {
             executor.submit(search_and_insert, coord_id, lat, lon): coord_id
             for coord_id, (lat, lon) in coords.items()
