@@ -68,7 +68,6 @@ def get_unsearched_coords(batch_size: int) -> dict[int, tuple[float, float]]:
     print(f"Found {len(rows)} unsearched coords")
 
     for row in rows:
-        print(row)
         (id, lat, lon, label, searched) = row
         coords[id] = (lat, lon)
 
