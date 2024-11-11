@@ -6,8 +6,9 @@ import os
 import time
 import sqlite3
 
-# 20 meters, this doesnt need to be too dense, because the Google Street View API will return the nearest panorama within 50 meters
-SAMPLE_INTERVAL_METER = 20
+# allegedly the Google Street View API will return the nearest panorama within 50 meters radius
+# but I'm sampling every 5 meters, because I've seen missing panoramas in the past
+SAMPLE_INTERVAL_METER = 5
 # 1 degree is approximately 111000 meters
 SAMPLE_INTERVAL_DEGREE = SAMPLE_INTERVAL_METER / 111000
 
