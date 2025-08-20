@@ -1,9 +1,6 @@
 import os
 import time
 import sqlite3
-import streetview
-import concurrent.futures
-import os
 
 
 DB_PATH = "gsv.db"
@@ -96,13 +93,14 @@ if __name__ == "__main__":
 
     panorama_coords_ratio = total_panoramas / searched_coords
     print("Current Time: ", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-    print("\n[Coord Search Progress]")
+    print("\n=== Bangalore Street View Data Collection Progress ===")
+    print("\n[Coordinate Search Progress]")
     print(f"Progress: {coord_search_progress*100:.2f}%")
-    print(f"Searched Coords: {searched_coords:,}/{total_coords:,}")
+    print(f"Searched Coordinates: {searched_coords:,}/{total_coords:,}")
 
     print("\n[Found Panoramas]")
     print(f"Total Panoramas: {total_panoramas:,}")
-    print(f"Panorama to Coord Ratio: {panorama_coords_ratio:.2f} pano/coord")
+    print(f"Panorama to Coordinate Ratio: {panorama_coords_ratio:.2f} pano/coord")
 
     print("\n[Panorama Metadata Progress]")
     print(f"Progress: {panoramas_metadata_progress*100:.2f}%")
@@ -112,3 +110,4 @@ if __name__ == "__main__":
 
     print("\n[Expected Total Panoramas]")
     print(f"Expected Total Panoramas: {total_coords * panorama_coords_ratio:,.0f}")
+    print("="*50)

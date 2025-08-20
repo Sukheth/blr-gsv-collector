@@ -3,7 +3,6 @@ import time
 import sqlite3
 import streetview
 import concurrent.futures
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,6 +14,7 @@ if GOOGLE_MAP_API_KEY is None:
     raise ValueError("GOOGLE_MAP_API_KEY is not set")
 
 SEARCH_BATCH_SIZE = 100000
+WORKERS = 72
 
 
 ########################################
@@ -115,7 +115,7 @@ def run_batch_in_parallel():
     progress = 0
     begin_time = time.time()
     last_progress_time = time.time()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=72) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
         futures = {
             executor.submit(search_and_update, pano_id): pano_id
             for pano_id in panoramas

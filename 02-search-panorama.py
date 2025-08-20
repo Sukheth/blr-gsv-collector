@@ -83,7 +83,7 @@ def get_unsearched_coords(batch_size: int) -> dict[int, tuple[float, float]]:
 
 def search_and_insert(coord_id, lat, lon):
 
-    print(f"Searching for coords {coord_id} with lat {lat:.2f} and lon {lon:.2f}")
+    print(f"Searching for coords {coord_id} with lat {lat:.6f} and lon {lon:.6f}")
     panorama_results = streetview.search_panoramas(lat, lon)
 
     # if result is not a list or is an empty list

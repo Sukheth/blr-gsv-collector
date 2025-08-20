@@ -1,14 +1,14 @@
-# NYC Street View Data Collector
+# Bangalore Street View Data Collector
 
-A Python-based tool for collecting and analyzing Google Street View panorama data across New York City boroughs. You can modify the script to collect data from other areas.
+A Python-based tool for collecting and analyzing Google Street View panorama data across Bangalore's BBMP zones. This tool systematically samples coordinates throughout the 8 BBMP zones of Bangalore.
 
 ## Overview
 
-This project samples coordinates throughout NYC boroughs and collects associated Google Street View panorama data. It uses a multi-threaded approach to efficiently gather panorama metadata including location, date, and copyright information.
+This project samples coordinates throughout Bangalore's BBMP zones and collects associated Google Street View panorama data. It uses a multi-threaded approach to efficiently gather panorama metadata including location, date, and copyright information.
 
 ## Features
 
-- Generates coordinate grid points within NYC borough boundaries
+- Generates coordinate grid points within Bangalore BBMP zone boundaries
 - Searches for Street View panoramas near sampled coordinates
 - Collects panorama metadata (date, copyright, location, etc.)
 - Multi-threaded processing for improved performance
@@ -22,7 +22,7 @@ This project samples coordinates throughout NYC boroughs and collects associated
 ### Install dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirement.txt
 ```
 
 ## Data Storage
@@ -34,15 +34,15 @@ All data is stored in a local SQLite database named `gsv.db`. This database is c
 ### Sample Coordinates
 
 ```bash
-python 01-sample-coordinates.py
+python 01-sample-coords.py
 ```
 
-This script samples coordinates throughout NYC boroughs and saves them to a SQLite database. It uses a grid of points with a specified spacing (by default `5 meters`, but can be adjusted).
+This script samples coordinates throughout Bangalore BBMP zones and saves them to a SQLite database. It uses a grid of points with a specified spacing (by default `5 meters`, but can be adjusted).
 
 ### Search Panoramas near Coordinates
 
 ```bash
-python 02-search-and-update-metadata.py
+python 02-search-panorama.py
 ```
 
 This script searches for panoramas near the sampled coordinates and updates the metadata in the database. It uses a multi-threaded approach to efficiently gather panorama metadata.
@@ -77,4 +77,4 @@ This project uses the following open-source packages:
 
 For full license texts of dependencies, please see their respective repositories.
 
-The NYC boroughs geojson data in `geojson/Borough Boundaries.geojson` is from [NYC Open Data](https://data.cityofnewyork.us/City-Government/Borough-Boundaries/tqmj-j8zm).
+The Bangalore BBMP zones geojson data should be placed in `geojson/BBMP_Zones.geojson` containing the 8 BBMP zones of Bangalore.
