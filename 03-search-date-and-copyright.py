@@ -3,12 +3,21 @@ import time
 import sqlite3
 import streetview
 import concurrent.futures
-import os
+import json
+import csv
+from tqdm import tqdm
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 
 DB_PATH = "gsv.db"
+PROGRESS_CSV = "progress/03-search-date-and-copyright-progress.csv"
+PROGRESS_JSON = "progress/03-search-date-and-copyright-progress.json"
+
+# Create progress directory if it doesn't exist
+os.makedirs("progress", exist_ok=True)
+
 GOOGLE_MAP_API_KEY = os.getenv("GOOGLE_MAP_API_KEY")
 
 if GOOGLE_MAP_API_KEY is None:
@@ -83,24 +92,55 @@ def get_panoramas_without_date_and_copyright(batch_size: int) -> list[str]:
 ########################################
 
 
+def log_progress(pano_id, status, date=None, copyright=None, error=None):
+    """Log progress to CSV and JSON files"""
+    progress_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "pano_id": pano_id,
+        "status": status,  # 'success', 'no_metadata', 'error'
+        "date": date,
+        "copyright": copyright,
+        "error": error
+    }
+
+    # Update CSV
+    write_header = not os.path.exists(PROGRESS_CSV) or os.path.getsize(PROGRESS_CSV) == 0
+    with open(PROGRESS_CSV, 'a', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=progress_entry.keys())
+        if write_header:
+            writer.writeheader()
+        writer.writerow(progress_entry)
+
+    # Update JSON
+    if os.path.exists(PROGRESS_JSON):
+        with open(PROGRESS_JSON, 'r') as f:
+            all_data = json.load(f)
+    else:
+        all_data = []
+    all_data.append(progress_entry)
+    with open(PROGRESS_JSON, 'w') as f:
+        json.dump(all_data, f, indent=2)
+
+
 def search_and_update(pano_id):
+    try:
+        metadata = streetview.get_panorama_meta(pano_id, GOOGLE_MAP_API_KEY)
 
-    print(f"Searching for panorama {pano_id}")
-    metadata = streetview.get_panorama_meta(pano_id, GOOGLE_MAP_API_KEY)
+        if metadata is None or (metadata.date is None and metadata.copyright is None):
+            log_progress(pano_id, 'no_metadata')
+            return
 
-    if metadata is None or (metadata.date is None and metadata.copyright is None):
-        print("No meta found for %s" % pano_id)
-        return
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "UPDATE search_panoramas SET date = ?, copyright = ? WHERE pano_id = ?",
+            [metadata.date, metadata.copyright, pano_id],
+        )
+        conn.commit()
+        conn.close()
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute(
-        "UPDATE search_panoramas SET date = ?, copyright = ? WHERE pano_id = ?",
-        [metadata.date, metadata.copyright, pano_id],
-    )
-    conn.commit()
-    conn.close()
-
-    print(f"Updated metadata for {pano_id}")
+        log_progress(pano_id, 'success', date=metadata.date, copyright=metadata.copyright)
+    except Exception as e:
+        log_progress(pano_id, 'error', error=str(e))
 
 
 def run_batch_in_parallel():
@@ -111,35 +151,26 @@ def run_batch_in_parallel():
         exit(0)
 
     panorama_count = len(panoramas)
-
-    progress = 0
     begin_time = time.time()
-    last_progress_time = time.time()
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=72) as executor:
         futures = {
             executor.submit(search_and_update, pano_id): pano_id
             for pano_id in panoramas
         }
 
-        for future in concurrent.futures.as_completed(futures):
-            pano_id = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                print(f"Error searching for panorama {pano_id}")
-                print(e)
-            progress += 1
-            last_duration = time.time() - last_progress_time
-            last_speed = progress / (time.time() - last_progress_time)
-            last_progress_time = time.time()
-            total_duration = time.time() - begin_time
-            total_speed = progress / total_duration
+        with tqdm(total=panorama_count, desc="Fetching metadata", unit="panos") as pbar:
+            for future in concurrent.futures.as_completed(futures):
+                pano_id = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Error searching for panorama {pano_id}: {e}")
 
-            # clear the console
-            os.system("cls" if os.name == "nt" else "clear")
-            print("Search Panorama Progress: %d/%d" % (progress, panorama_count))
-            print("Last Speed: %f panoramas/sec" % last_speed)
-            print("Total Speed: %f panoramas/sec" % total_speed)
+                pbar.update(1)
+                total_duration = time.time() - begin_time
+                total_speed = pbar.n / total_duration if total_duration > 0 else 0
+                pbar.set_postfix({"speed": f"{total_speed:.2f} panos/sec"})
 
 
 if __name__ == "__main__":

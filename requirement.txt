@@ -1,3 +1,4 @@
 geopandas
 streetview
 python-dotenv
+tqdm

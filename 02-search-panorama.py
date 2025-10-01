@@ -3,8 +3,17 @@ import time
 import sqlite3
 import streetview
 import concurrent.futures
+import json
+import csv
+from tqdm import tqdm
+from datetime import datetime
 
 DB_PATH = "gsv.db"
+PROGRESS_CSV = "progress/02-search-panorama-progress.csv"
+PROGRESS_JSON = "progress/02-search-panorama-progress.json"
+
+# Create progress directory if it doesn't exist
+os.makedirs("progress", exist_ok=True)
 
 SEARCH_BATCH_SIZE = 100000
 
@@ -81,43 +90,75 @@ def get_unsearched_coords(batch_size: int) -> dict[int, tuple[float, float]]:
 ########################################
 
 
+def log_progress(coord_id, lat, lon, status, panoramas_found=0, error=None):
+    """Log progress to CSV and JSON files"""
+    progress_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "coord_id": coord_id,
+        "lat": round(lat, 6),
+        "lon": round(lon, 6),
+        "status": status,  # 'success', 'no_panorama', 'error'
+        "panoramas_found": panoramas_found,
+        "error": error
+    }
+
+    # Update CSV
+    write_header = not os.path.exists(PROGRESS_CSV) or os.path.getsize(PROGRESS_CSV) == 0
+    with open(PROGRESS_CSV, 'a', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=progress_entry.keys())
+        if write_header:
+            writer.writeheader()
+        writer.writerow(progress_entry)
+
+    # Update JSON
+    if os.path.exists(PROGRESS_JSON):
+        with open(PROGRESS_JSON, 'r') as f:
+            all_data = json.load(f)
+    else:
+        all_data = []
+    all_data.append(progress_entry)
+    with open(PROGRESS_JSON, 'w') as f:
+        json.dump(all_data, f, indent=2)
+
+
 def search_and_insert(coord_id, lat, lon):
+    try:
+        panorama_results = streetview.search_panoramas(lat, lon)
 
-    print(f"Searching for coords {coord_id} with lat {lat:.2f} and lon {lon:.2f}")
-    panorama_results = streetview.search_panoramas(lat, lon)
-
-    # if result is not a list or is an empty list
-    if not isinstance(panorama_results, list):
-        print(f"Error searching for point {coord_id}, ({lat}, {lon})")
-        return
-
-    if len(panorama_results) == 0:
-        print(f"No panorama found for point {coord_id}, ({lat}, {lon})")
-        if not COUNT_NONE_FOUND_AS_SEARCHED:
+        # if result is not a list or is an empty list
+        if not isinstance(panorama_results, list):
+            log_progress(coord_id, lat, lon, 'error', error='Invalid result type')
             return
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+        if len(panorama_results) == 0:
+            log_progress(coord_id, lat, lon, 'no_panorama')
+            if not COUNT_NONE_FOUND_AS_SEARCHED:
+                return
 
-    for result in panorama_results:
-        cursor.execute(
-            "INSERT OR IGNORE INTO search_panoramas VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-                result.pano_id,
-                result.lat,
-                result.lon,
-                result.date,
-                None,
-                result.heading,
-                result.pitch,
-                result.roll,
-            ],
-        )
-    cursor.execute("UPDATE sample_coords SET searched = 1 WHERE id = ?", [coord_id])
-    conn.commit()
-    conn.close()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
 
-    print(f"Found {len(panorama_results)} panoramas for coord {coord_id}")
+        for result in panorama_results:
+            cursor.execute(
+                "INSERT OR IGNORE INTO search_panoramas VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    result.pano_id,
+                    result.lat,
+                    result.lon,
+                    result.date,
+                    None,
+                    result.heading,
+                    result.pitch,
+                    result.roll,
+                ],
+            )
+        cursor.execute("UPDATE sample_coords SET searched = 1 WHERE id = ?", [coord_id])
+        conn.commit()
+        conn.close()
+
+        log_progress(coord_id, lat, lon, 'success', panoramas_found=len(panorama_results))
+    except Exception as e:
+        log_progress(coord_id, lat, lon, 'error', error=str(e))
 
 
 def run_batch_in_parallel():
@@ -128,34 +169,26 @@ def run_batch_in_parallel():
         exit(0)
 
     coords_count = len(coords)
-
-    progress = 0
     begin_time = time.time()
-    last_progress_time = time.time()
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
         futures = {
             executor.submit(search_and_insert, coord_id, lat, lon): coord_id
             for coord_id, (lat, lon) in coords.items()
         }
 
-        for future in concurrent.futures.as_completed(futures):
-            coord_id = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                print(f"Error searching for coord {coord_id}")
-                print(e)
-            progress += 1
-            last_duration = time.time() - last_progress_time
-            last_speed = progress / (time.time() - last_progress_time)
-            last_progress_time = time.time()
-            total_duration = time.time() - begin_time
-            total_speed = progress / total_duration
-            # clear the console
-            os.system("cls" if os.name == "nt" else "clear")
-            print("Search Coord Progress: %d/%d" % (progress, coords_count))
-            print("Last Speed: %f coords/sec" % last_speed)
-            print("Total Speed: %f coords/sec" % total_speed)
+        with tqdm(total=coords_count, desc="Searching panoramas", unit="coords") as pbar:
+            for future in concurrent.futures.as_completed(futures):
+                coord_id = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Error searching for coord {coord_id}: {e}")
+
+                pbar.update(1)
+                total_duration = time.time() - begin_time
+                total_speed = pbar.n / total_duration if total_duration > 0 else 0
+                pbar.set_postfix({"speed": f"{total_speed:.2f} coords/sec"})
 
 
 if __name__ == "__main__":
